@@ -63,6 +63,8 @@ struct TaskbarWidgetOptions {
   ColorSpec emptyColor = colorSpecFromRole(ColorRole::Secondary);
   ColorSpec urgentColor = colorSpecFromRole(ColorRole::Error);
   bool showRunning = true;
+  // Show only minimized windows, e.g. as a second taskbar acting as a minimized-window tray.
+  bool onlyMinimized = false;
   bool showWindowTitle = false;
   int windowTitleMaxWidth = 100;
   int taskbarMaxWidth = 8192;

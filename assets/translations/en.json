@@ -4676,6 +4676,10 @@
           "description": "Hide windows on inactive workspaces",
           "label": "Only Active Workspace"
         },
+        "only-minimized": {
+          "description": "Show only minimized windows, for example as a second taskbar that holds minimized windows",
+          "label": "Only Minimized"
+        },
         "path": {
           "description": "Path used by disk statistics",
           "label": "Path"

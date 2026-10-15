@@ -2824,6 +2824,9 @@ void TaskbarWidget::updateModels() {
     });
     applyPinnedMerge(nextTasks);
     dropUnpinnedTasks(nextTasks, m_configOptions.showRunning);
+    if (m_configOptions.onlyMinimized) {
+      std::erase_if(nextTasks, [](const TaskModel& task) { return !task.minimized; });
+    }
   }
 
   const ModelComparison comparison =

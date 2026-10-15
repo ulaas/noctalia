@@ -144,6 +144,12 @@ const noctalia::bar::WidgetDefinition<TaskbarWidgetOptions>& taskbarWidgetDefini
                           .presentation = presentation("taskbar.windows", matches("group_by_workspace", {"false"})),
                       }
                   ),
+                  field<&Options::onlyMinimized>(
+                      {
+                          .key = "only_minimized",
+                          .presentation = presentation("taskbar.windows", matches("group_by_workspace", {"false"})),
+                      }
+                  ),
                   field<&Options::onlyActiveWorkspace>(
                       {
                           .key = "only_active_workspace",

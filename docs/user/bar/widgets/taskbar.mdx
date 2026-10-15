@@ -16,6 +16,18 @@ When grouped app collapsing is enabled, multi-window app tiles also show compact
 
 **Show running** (`show_running`, default `true`) keeps windows that are not in `pinned` on the flat strip; set it to `false` for a pinned-only strip. Keep at least one pin, or a pinned-only strip with an empty `pinned` list is blank and still reserves its bar slot. Ignored while `group_by_workspace` is on.
 
+**Minimizing.** Clicking the focused window's icon minimizes it, and clicking a minimized icon restores it; the right-click menu also has **Minimize** / **Restore**. Minimized icons are dimmed. This needs compositor support (on niri, a build with floating-window minimize; on other compositors, wlr-foreign-toplevel minimize).
+
+**Only minimized** (`only_minimized`, default `false`) shows nothing but minimized windows. Add a second taskbar instance with it to get a tray of minimized windows next to the normal taskbar:
+
+```toml
+[widget.minimized]
+type = "taskbar"
+only_minimized = true
+```
+
+Then add `"minimized"` to a bar section, e.g. `start = ["launcher", "workspaces", "taskbar", "minimized"]`. Ignored while `group_by_workspace` is on.
+
 **Only active workspace** limits the list to windows the shell can place on a workspace that is currently active on its monitor (same idea as the v4 taskbar option). It works with or without `group_by_workspace`; with grouping, inactive workspace capsules are omitted.
 
 **Workspace grouping** (`group_by_workspace` and related options) needs per-window workspace assignment from the compositor, not just a workspace list. Without it, the taskbar stays flat and those settings are hidden in the GUI (config keys are accepted but ignored). LabWC is a common example ([discussion #2924](https://github.com/labwc/labwc/discussions/2924)); use the **workspaces** widget for switching there.
@@ -34,6 +46,7 @@ With grouping, `workspace_group_content` chooses what each capsule shows for its
 | `show_running` | bool | `true` | Show running windows that are not in `pinned`. Set `false` for a pinned-only strip; with an empty `pinned` list the strip is empty but keeps its bar slot. Ignored while `group_by_workspace` is on. |
 | `group_by_workspace` | bool | `false` | Group icons into workspace capsules when per-window workspace assignment is available. |
 | `show_all_outputs` | bool | `false` | Include windows from all monitors. With `group_by_workspace`, workspaces from every monitor are merged; capsule badges use `tag·n` (workspace tag, middle dot, monitor index in bar monitor order) when there is more than one monitor. |
+| `only_minimized` | bool | `false` | Show only minimized windows, e.g. as a second taskbar instance that holds minimized windows. Ignored while `group_by_workspace` is on. |
 | `only_active_workspace` | bool | `false` | Show only windows on the active workspace for each relevant monitor. Depends on compositor workspace data; if a window’s workspace cannot be resolved, it is still shown. |
 | `hidden_workspaces` | array of string | `[]` | Workspace names whose windows, and capsules when `group_by_workspace` is on, are left out of the taskbar. A hidden workspace still shows while it is active. Use it for a stash workspace, such as a named niri workspace that apps wait on until they are brought into view. Depends on compositor workspace data. |
 | `icon_scale` | float | `1.0` | Scale taskbar application icons relative to their default size. Values from `0.1` to `2.0` are accepted; larger icons remain constrained by the bar thickness. |
