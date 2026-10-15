@@ -119,6 +119,8 @@ public:
   void activateToplevelInfo(const ToplevelInfo& window);
   void closeToplevel(zwlr_foreign_toplevel_handle_v1* handle);
   void closeToplevelInfo(const ToplevelInfo& window);
+  // Minimizes a window; activating it (activateToplevelInfo) restores it.
+  void minimizeToplevelInfo(const ToplevelInfo& window);
   void focusCompositorWindow(const std::string& windowId, bool warpPointer = false) const;
 
   // Focus `output` before spawning (Hyprland) so clients follow the launch monitor.

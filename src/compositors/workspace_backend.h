@@ -161,6 +161,10 @@ namespace compositors {
     // both interfaces don't hit a conflicting-return-type override.
     virtual bool focusWindowById(const std::string& /*windowId*/, bool /*warpPointer*/ = false) { return false; }
     virtual bool closeWindowById(const std::string& /*windowId*/) { return false; }
+    virtual bool minimizeWindowById(const std::string& /*windowId*/) { return false; }
+    // Minimized state from the compositor's own window model, for compositors
+    // whose exact-identity window list (ext-foreign-toplevel) carries no states.
+    [[nodiscard]] virtual bool isWindowMinimized(const std::string& /*windowId*/) const { return false; }
     [[nodiscard]] virtual bool canTrackOverviewState() const noexcept { return false; }
     [[nodiscard]] virtual bool hasOverviewState() const noexcept { return false; }
     [[nodiscard]] virtual bool isOverviewOpen() const noexcept { return true; }

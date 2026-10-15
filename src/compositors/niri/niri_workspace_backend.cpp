@@ -330,6 +330,27 @@ bool NiriWorkspaceBackend::closeWindowById(const std::string& windowId) {
   );
 }
 
+bool NiriWorkspaceBackend::minimizeWindowById(const std::string& windowId) {
+  const auto id = parseUnsigned(windowId);
+  if (!id.has_value()) {
+    return false;
+  }
+  return m_runtime.requestAction(
+      nlohmann::json{
+          {"MinimizeWindow", nlohmann::json{{"id", *id}}},
+      }
+  );
+}
+
+bool NiriWorkspaceBackend::isWindowMinimized(const std::string& windowId) const {
+  const auto id = parseUnsigned(windowId);
+  if (!id.has_value()) {
+    return false;
+  }
+  const auto it = m_windows.find(*id);
+  return it != m_windows.end() && it->second.minimized;
+}
+
 void NiriWorkspaceBackend::cleanup() { m_runtime.cleanup(); }
 
 void NiriWorkspaceBackend::handleStreamReset() {
@@ -494,12 +515,13 @@ bool NiriWorkspaceBackend::handleWindowOpenedOrChanged(const nlohmann::json& pay
   const bool membershipChanged = existing == m_windows.end() ? (state.workspaceId.has_value() || !state.appId.empty())
                                                              : !sameWindowMembership(existing->second, state);
   const bool layoutChanged = existing != m_windows.end() && !sameWindowLayout(existing->second, state);
+  const bool minimizedChanged = existing != m_windows.end() && existing->second.minimized != state.minimized;
   m_windows[*id] = state;
   if (membershipChanged) {
     recomputeOccupancy();
   }
 
-  return membershipChanged || layoutChanged || focusUpdated;
+  return membershipChanged || layoutChanged || minimizedChanged || focusUpdated;
 }
 
 bool NiriWorkspaceBackend::handleWindowLayoutsChanged(const nlohmann::json& payload) {
@@ -670,6 +692,12 @@ bool NiriWorkspaceBackend::applyWindowFields(const nlohmann::json& json, WindowS
 
   if (json.contains("title")) {
     state.title = StringUtils::windowTitleSingleLine(jsonOptionalString(json, "title"));
+    changed = true;
+  }
+
+  // Only reported by niri builds with floating-window minimize support.
+  if (const auto minimized = jsonOptionalBool(json, "is_minimized"); minimized.has_value()) {
+    state.minimized = *minimized;
     changed = true;
   }
 

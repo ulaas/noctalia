@@ -1059,6 +1059,10 @@ void WaylandConnection::closeToplevel(zwlr_foreign_toplevel_handle_v1* handle) {
   m_toplevelsHandler.closeHandle(handle);
 }
 
+void WaylandConnection::minimizeToplevel(zwlr_foreign_toplevel_handle_v1* handle) {
+  m_toplevelsHandler.minimizeHandle(handle);
+}
+
 bool WaylandConnection::isConnected() const noexcept { return m_display != nullptr; }
 
 bool WaylandConnection::hasRequiredGlobals() const noexcept {

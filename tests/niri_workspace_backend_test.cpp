@@ -111,28 +111,58 @@ int main() {
       "window 41 should use its named workspace and updated position"
   );
 
-  std::string request;
+  // Minimized state comes from niri's is_minimized and must trigger a change.
+  backend.handleEvent(
+      "WindowOpenedOrChanged",
+      {{"window",
+        {{"id", 41},
+         {"workspace_id", 1},
+         {"app_id", "com.mitchellh.ghostty"},
+         {"is_focused", false},
+         {"is_minimized", true},
+         {"layout", {{"pos_in_scrolling_layout", {2, 1}}}}}}}
+  );
+  ok &= check(changes == 4, "minimizing should trigger a change");
+  ok &= check(backend.isWindowMinimized("41"), "window 41 should be minimized");
+  ok &= check(!backend.isWindowMinimized("42"), "window 42 should not be minimized");
+  ok &= check(!backend.isWindowMinimized("not-an-id"), "bad id should not be minimized");
+  backend.handleEvent(
+      "WindowOpenedOrChanged",
+      {{"window",
+        {{"id", 41},
+         {"workspace_id", 1},
+         {"app_id", "com.mitchellh.ghostty"},
+         {"is_focused", true},
+         {"is_minimized", false},
+         {"layout", {{"pos_in_scrolling_layout", {2, 1}}}}}}}
+  );
+  ok &= check(changes == 5, "restoring should trigger a change");
+  ok &= check(!backend.isWindowMinimized("41"), "window 41 should be restored");
+
+  std::vector<std::string> requests;
   int serverError = 0;
   std::jthread server([&]() {
-    const int client = ::accept4(listener, nullptr, nullptr, SOCK_CLOEXEC);
-    if (client < 0) {
-      serverError = 1;
-      return;
-    }
-    char buffer[512];
-    const ssize_t size = ::read(client, buffer, sizeof(buffer));
-    if (size <= 0) {
+    for (int i = 0; i < 2; ++i) {
+      const int client = ::accept4(listener, nullptr, nullptr, SOCK_CLOEXEC);
+      if (client < 0) {
+        serverError = 1;
+        return;
+      }
+      char buffer[512];
+      const ssize_t size = ::read(client, buffer, sizeof(buffer));
+      if (size <= 0) {
+        ::close(client);
+        serverError = 2;
+        return;
+      }
+      requests.emplace_back(buffer, static_cast<std::size_t>(size));
+      constexpr std::string_view response = "{\"Ok\":null}\n";
+      const ssize_t written = ::write(client, response.data(), response.size());
+      if (written != static_cast<ssize_t>(response.size())) {
+        serverError = 3;
+      }
       ::close(client);
-      serverError = 2;
-      return;
     }
-    request.assign(buffer, static_cast<std::size_t>(size));
-    constexpr std::string_view response = "{\"Ok\":null}\n";
-    const ssize_t written = ::write(client, response.data(), response.size());
-    if (written != static_cast<ssize_t>(response.size())) {
-      serverError = 3;
-    }
-    ::close(client);
   });
 
   if (!check(::setenv("NIRI_SOCKET", socketPath.c_str(), 1) == 0, "setenv(NIRI_SOCKET) failed")) {
@@ -140,11 +170,18 @@ int main() {
   }
   runtime.refresh();
 
+  ok &= check(backend.minimizeWindowById("41"), "minimizeWindowById should succeed");
   ok &= check(backend.closeWindowById("42"), "closeWindowById should succeed");
   server.join();
   ok &= check(serverError == 0, "server thread encountered an error");
-  const nlohmann::json expectedRequest{{"Action", {{"CloseWindow", {{"id", 42}}}}}};
-  ok &= check(nlohmann::json::parse(request) == expectedRequest, "request payload mismatch");
+  ok &= check(requests.size() == 2, "expected two requests");
+  if (requests.size() == 2) {
+    const nlohmann::json expectedMinimize{{"Action", {{"MinimizeWindow", {{"id", 41}}}}}};
+    ok &= check(nlohmann::json::parse(requests[0]) == expectedMinimize, "minimize request payload mismatch");
+    const nlohmann::json expectedClose{{"Action", {{"CloseWindow", {{"id", 42}}}}}};
+    ok &= check(nlohmann::json::parse(requests[1]) == expectedClose, "close request payload mismatch");
+  }
+  ok &= check(!backend.minimizeWindowById("not-an-id"), "minimizeWindowById with bad id should fail");
   ok &= check(!backend.closeWindowById("not-an-id"), "closeWindowById with bad id should fail");
 
   ::close(listener);

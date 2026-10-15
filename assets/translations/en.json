@@ -712,7 +712,9 @@
   "dock": {
     "actions": {
       "close": "Close",
-      "close-all": "Close All"
+      "close-all": "Close All",
+      "minimize": "Minimize",
+      "restore": "Restore"
     },
     "launcher": "Launcher"
   },

@@ -116,6 +116,8 @@ private:
     std::uint64_t workspaceOrder = std::numeric_limits<std::uint64_t>::max();
     std::size_t instanceCount = 1;
     bool active = false;
+    // Hidden by the compositor; activating the window restores it.
+    bool minimized = false;
     // Pinned flat-strip slot (empty when not running). Ignored while group_by_workspace is on.
     bool pinned = false;
     bool running = true;
@@ -215,6 +217,8 @@ private:
   [[nodiscard]] static std::string_view workspaceBindingWindowId(const TaskModel& task);
   void activateTaskModel(const TaskModel& task);
   void closeTaskModel(const TaskModel& task);
+  void minimizeTaskModel(const TaskModel& task);
+  [[nodiscard]] float taskTileOpacity(const TaskModel& task) const;
   void applyPinnedMerge(std::vector<TaskModel>& tasks);
   static void dropUnpinnedTasks(std::vector<TaskModel>& tasks, bool showRunning);
   void activateOrLaunchPinned(const TaskModel& task);
@@ -255,6 +259,7 @@ private:
   float m_activeOpacity = 1.0F;
   float m_inactiveOpacity = 1.0F;
   float m_pinnedOpacity = 0.5F;
+  float m_minimizedOpacity = 0.5F;
   ColorSpec m_focusedColor = colorSpecFromRole(ColorRole::Primary);
   ColorSpec m_occupiedColor = colorSpecFromRole(ColorRole::Secondary);
   ColorSpec m_emptyColor = colorSpecFromRole(ColorRole::Secondary);

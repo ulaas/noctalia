@@ -339,6 +339,7 @@ std::vector<ToplevelInfo> WaylandToplevels::windowsForApp(
                   .order = state.order,
                   .handle = handle,
                   .outputAnnounced = state.sawOutputEnter,
+                  .minimized = state.minimized,
               },
           }
       );
@@ -376,6 +377,7 @@ std::vector<ToplevelInfo> WaylandToplevels::windowsWithoutAppId(wl_output* outpu
                 .order = state.order,
                 .handle = handle,
                 .outputAnnounced = state.sawOutputEnter,
+                .minimized = state.minimized,
             },
         }
     );
@@ -404,6 +406,12 @@ void WaylandToplevels::closeHandle(zwlr_foreign_toplevel_handle_v1* handle) {
   if (handle == nullptr)
     return;
   zwlr_foreign_toplevel_handle_v1_close(handle);
+}
+
+void WaylandToplevels::minimizeHandle(zwlr_foreign_toplevel_handle_v1* handle) {
+  if (handle == nullptr)
+    return;
+  zwlr_foreign_toplevel_handle_v1_set_minimized(handle);
 }
 
 void WaylandToplevels::onHandleOutputEnter(zwlr_foreign_toplevel_handle_v1* handle, wl_output* output) {

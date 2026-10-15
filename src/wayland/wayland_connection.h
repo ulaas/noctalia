@@ -253,6 +253,7 @@ public:
   }
   void activateToplevel(zwlr_foreign_toplevel_handle_v1* handle);
   void closeToplevel(zwlr_foreign_toplevel_handle_v1* handle);
+  void minimizeToplevel(zwlr_foreign_toplevel_handle_v1* handle);
   template <typename Fn> void visitWlrToplevelHandles(Fn&& fn) const {
     m_toplevelsHandler.visitWlrHandles(std::forward<Fn>(fn));
   }

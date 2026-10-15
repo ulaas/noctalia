@@ -331,6 +331,31 @@ void TaskbarWidget::closeTaskModel(const TaskModel& task) {
   }
 }
 
+void TaskbarWidget::minimizeTaskModel(const TaskModel& task) {
+  if (task.firstHandle == nullptr && task.exactWindowId.empty()) {
+    return;
+  }
+  ToplevelInfo window{};
+  window.title = task.title;
+  window.appId = task.appId;
+  window.identifier = !task.exactWindowId.empty() ? task.exactWindowId : task.workspaceWindowId;
+  window.handle = !task.exactWindowId.empty() ? nullptr : task.firstHandle;
+  window.exactIdentity = !task.exactWindowId.empty();
+  m_platform.minimizeToplevelInfo(window);
+}
+
+float TaskbarWidget::taskTileOpacity(const TaskModel& task) const {
+  float opacity = task.active ? m_activeOpacity : m_inactiveOpacity;
+  // Pinned-but-not-running tiles are launchers, dim them so they don't read as open apps.
+  if (task.pinned && !task.running) {
+    opacity *= m_pinnedOpacity;
+  }
+  if (task.minimized) {
+    opacity *= m_minimizedOpacity;
+  }
+  return opacity;
+}
+
 const std::vector<std::string>& TaskbarWidget::pinnedConfigIds() const noexcept { return m_configOptions.pinned; }
 
 bool TaskbarWidget::reorderEnabled() const {
@@ -954,12 +979,7 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
     const TaskModel& task = *taskModel;
     auto area = ui::inputArea({});
     area->setFrameSize(tileWidthWithTitle, tileSize);
-    float tileOpacity = task.active ? m_activeOpacity : m_inactiveOpacity;
-    // Pinned-but-not-running tiles are launchers, dim them so they don't read as open apps.
-    if (task.pinned && !task.running) {
-      tileOpacity *= m_pinnedOpacity;
-    }
-    area->setOpacity(tileOpacity);
+    area->setOpacity(taskTileOpacity(task));
     area->setAcceptedButtons(InputArea::buttonMask({BTN_LEFT, BTN_RIGHT, BTN_MIDDLE}));
     auto* dragArea = area.get();
     const bool tileDraggable = taskRef.index < draggableTileCount;
@@ -1111,7 +1131,12 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
             }
             return;
           }
-          activateTaskModel(*current);
+          // Clicking the focused window's tile minimizes it; clicking a minimized one restores it.
+          if (current->active && !current->minimized) {
+            minimizeTaskModel(*current);
+          } else {
+            activateTaskModel(*current);
+          }
           return;
         }
         if (data.button == BTN_RIGHT
@@ -1853,6 +1878,7 @@ void TaskbarWidget::updateModels() {
       task.title = window.title;
       task.displayName = run.entry.name;
       task.active = activeHandle != nullptr && activeHandle == window.handle;
+      task.minimized = window.minimized;
       task.firstHandle = window.handle;
       if (window.exactIdentity && !window.identifier.empty()) {
         task.workspaceWindowId = window.identifier;
@@ -1882,6 +1908,7 @@ void TaskbarWidget::updateModels() {
     task.order = window.order;
     task.title = window.title;
     task.active = activeHandle != nullptr && activeHandle == window.handle;
+    task.minimized = window.minimized;
     task.firstHandle = window.handle;
     if (window.exactIdentity && !window.identifier.empty()) {
       task.workspaceWindowId = window.identifier;
@@ -2821,11 +2848,7 @@ void TaskbarWidget::updateModels() {
         }
         if (comparison.activesChanged) {
           if (tile.area != nullptr) {
-            float opacity = task.active ? m_activeOpacity : m_inactiveOpacity;
-            if (task.pinned && !task.running) {
-              opacity *= m_pinnedOpacity;
-            }
-            tile.area->setOpacity(opacity);
+            tile.area->setOpacity(taskTileOpacity(task));
           }
           if (tile.activeIndicator != nullptr) {
             tile.activeIndicator->setVisible(task.active);
@@ -2950,10 +2973,13 @@ void TaskbarWidget::openTaskContextMenu(const TaskModel& task, InputArea& area) 
       ? (m_contextMenuInfoWindows.empty() ? (closePrimaryEnabled ? 1U : 0U) : m_contextMenuInfoWindows.size())
       : m_contextMenuHandles.size();
 
+  const bool showMinimize = task.running && (task.firstHandle != nullptr || !task.exactWindowId.empty());
+
   const bool pinAvailable = !m_groupByWorkspace && menuEntry.has_value() && !menuEntry->id.empty();
   const bool isPinned = pinAvailable && shell::dock::pinned_apps::containsEntry(pinnedConfigIds(), *menuEntry);
 
-  // IDs 0..N-1 => desktop actions, -1 => close single, -2 => close all, -4 => pin toggle.
+  // IDs 0..N-1 => desktop actions, -1 => close single, -2 => close all, -4 => pin toggle,
+  // -5 => minimize/restore.
   std::vector<ContextMenuControlEntry> entries;
   entries.reserve(entryActions.size() + 5);
   if (pinAvailable) {
@@ -2978,8 +3004,24 @@ void TaskbarWidget::openTaskContextMenu(const TaskModel& task, InputArea& area) 
         }
     );
   }
-  if (showClose) {
+  if (showMinimize) {
     if (!entries.empty()) {
+      entries.push_back(
+          ContextMenuControlEntry{.id = -3, .label = {}, .enabled = false, .separator = true, .hasSubmenu = false}
+      );
+    }
+    entries.push_back(
+        ContextMenuControlEntry{
+            .id = -5,
+            .label = i18n::tr(task.minimized ? "dock.actions.restore" : "dock.actions.minimize"),
+            .enabled = true,
+            .separator = false,
+            .hasSubmenu = false,
+        }
+    );
+  }
+  if (showClose) {
+    if (!entries.empty() && !showMinimize) {
       entries.push_back(
           ContextMenuControlEntry{.id = -3, .label = {}, .enabled = false, .separator = true, .hasSubmenu = false}
       );
@@ -3015,7 +3057,15 @@ void TaskbarWidget::openTaskContextMenu(const TaskModel& task, InputArea& area) 
   }
   m_contextMenuPopup->setShadowConfig(m_configService.config().shell.shadow);
   m_contextMenuPopup->setOnActivate([this, entryActions, entryAppName, entryWorkingDir, entryTerminal, menuEntry,
-                                     isPinned, infoClose](const ContextMenuControlEntry& entry) {
+                                     isPinned, infoClose, menuTask = task](const ContextMenuControlEntry& entry) {
+    if (entry.id == -5) {
+      if (menuTask.minimized) {
+        activateTaskModel(menuTask);
+      } else {
+        minimizeTaskModel(menuTask);
+      }
+      return;
+    }
     if (entry.id == -4) {
       if (menuEntry.has_value()) {
         setEntryPinned(*menuEntry, !isPinned);
@@ -3214,7 +3264,9 @@ TaskbarWidget::ModelComparison TaskbarWidget::compareModels(
   for (std::size_t i = 0; i < nextTasks.size(); ++i) {
     const bool titleChanged =
         nextTasks[i].title != previousTasks[i].title || nextTasks[i].displayName != previousTasks[i].displayName;
-    const bool activeChanged = nextTasks[i].active != previousTasks[i].active;
+    // Minimizing restyles the tile the same way an activation change does.
+    const bool activeChanged =
+        nextTasks[i].active != previousTasks[i].active || nextTasks[i].minimized != previousTasks[i].minimized;
     titlesChanged = titlesChanged || titleChanged;
     activesChanged = activesChanged || activeChanged;
     if (nextTasks[i].appId != previousTasks[i].appId

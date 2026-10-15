@@ -45,6 +45,8 @@ public:
   [[nodiscard]] std::optional<std::string> focusedWindowId() const override;
   bool focusWindowById(const std::string& windowId, bool warpPointer = false) override;
   bool closeWindowById(const std::string& windowId) override;
+  bool minimizeWindowById(const std::string& windowId) override;
+  [[nodiscard]] bool isWindowMinimized(const std::string& windowId) const override;
   void cleanup() override;
 
 private:
@@ -54,6 +56,7 @@ private:
     std::string title;
     std::int32_t x = 0;
     std::int32_t y = 0;
+    bool minimized = false;
 
     bool operator==(const WindowState&) const = default;
   };

@@ -955,6 +955,7 @@ std::vector<ToplevelInfo> CompositorPlatform::enrichedWindowsForApp(
     auto windows = m_wayland.extWindowsForApp(idLower, wmClassLower);
     for (auto& w : windows) {
       w.exactIdentity = true;
+      w.minimized = m_workspaceMetadataBackend->isWindowMinimized(w.identifier);
     }
     if (!windows.empty()) {
       retainToplevelsWithWindowIds(windows, windowIdsFromAssignments(workspaceWindowAssignments(outputFilter)));
@@ -973,6 +974,7 @@ std::vector<ToplevelInfo> CompositorPlatform::enrichedWindowsWithoutAppId(wl_out
     auto windows = m_wayland.extWindowsWithoutAppId();
     for (auto& w : windows) {
       w.exactIdentity = true;
+      w.minimized = m_workspaceMetadataBackend->isWindowMinimized(w.identifier);
     }
     if (!windows.empty()) {
       retainToplevelsWithWindowIds(windows, windowIdsFromAssignments(workspaceWindowAssignments(outputFilter)));
@@ -1037,6 +1039,18 @@ void CompositorPlatform::closeToplevelInfo(const ToplevelInfo& window) {
   }
   if (compositors::isKde() && m_kwinActiveWindow != nullptr && m_kwinActiveWindow->isAvailable()) {
     m_kwinActiveWindow->closeWindow(window.title, window.appId, window.identifier);
+  }
+}
+
+void CompositorPlatform::minimizeToplevelInfo(const ToplevelInfo& window) {
+  if (window.exactIdentity
+      && !window.identifier.empty()
+      && m_workspaceMetadataBackend != nullptr
+      && m_workspaceMetadataBackend->minimizeWindowById(window.identifier)) {
+    return;
+  }
+  if (window.handle != nullptr) {
+    m_wayland.minimizeToplevel(window.handle);
   }
 }
 

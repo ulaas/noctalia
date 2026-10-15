@@ -47,6 +47,7 @@ struct ToplevelInfo {
   // True when `identifier` is an exact compositor-assigned window ID suitable
   // for direct focus/close actions and stable taskbar identity.
   bool exactIdentity = false;
+  bool minimized = false;
 };
 
 struct WlrToplevelSnapshot {
@@ -79,6 +80,7 @@ public:
   [[nodiscard]] bool containsWlrHandle(zwlr_foreign_toplevel_handle_v1* handle) const;
   void activateHandle(zwlr_foreign_toplevel_handle_v1* handle, wl_seat* seat);
   void closeHandle(zwlr_foreign_toplevel_handle_v1* handle);
+  void minimizeHandle(zwlr_foreign_toplevel_handle_v1* handle);
 
   // Listener entrypoints called by C callbacks
   void onToplevelCreated(zwlr_foreign_toplevel_handle_v1* handle);
