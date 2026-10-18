@@ -16,7 +16,7 @@ When grouped app collapsing is enabled, multi-window app tiles also show compact
 
 **Show running** (`show_running`, default `true`) keeps windows that are not in `pinned` on the flat strip; set it to `false` for a pinned-only strip. Keep at least one pin, or a pinned-only strip with an empty `pinned` list is blank and still reserves its bar slot. Ignored while `group_by_workspace` is on.
 
-**Minimizing.** Clicking the focused window's icon minimizes it, and clicking a minimized icon restores it; the right-click menu also has **Minimize** / **Restore**. Minimized icons are dimmed. This needs compositor support (on niri, a build with floating-window minimize; on other compositors, wlr-foreign-toplevel minimize).
+**Minimizing.** Clicking the focused window's icon minimizes it, and clicking a minimized icon restores it; the right-click menu also has **Minimize** / **Restore**. Minimized icons are dimmed and get a short line underneath (`show_minimized_indicator`) in place of the active dot. This needs compositor support (on niri, a build with floating-window minimize; on other compositors, wlr-foreign-toplevel minimize).
 
 **Only minimized** (`only_minimized`, default `false`) shows nothing but minimized windows. Add a second taskbar instance with it to get a tray of minimized windows next to the normal taskbar:
 
@@ -63,6 +63,8 @@ With grouping, `workspace_group_content` chooses what each capsule shows for its
 | `group_single_icon_per_app` | bool | `false` | With `group_by_workspace` and `workspace_group_content = icons`, collapse multiple windows of the same app into one tile per workspace group. Left-click cycles that app's windows; right-edge overlay dots indicate multiple windows. |
 | `show_active_indicator` | bool | `true` | Show a small dot below the active window icon in the taskbar. With `workspace_group_content = dots`, highlights the focused window's dot instead. |
 | `active_indicator_color` | string | `"primary"` | Color of the active window indicator (dot, title underline, or focused dot in `dots` mode). Accepts a color role or a fixed hex color. Requires `show_active_indicator`. |
+| `show_minimized_indicator` | bool | `true` | Show a short line below minimized window icons, in place of the active dot. With `workspace_group_content = dots`, minimized windows' dots use `minimized_indicator_color` instead. |
+| `minimized_indicator_color` | string | `"tertiary"` | Color of the minimized window indicator. Accepts a color role or a fixed hex color. Requires `show_minimized_indicator`. |
 | `active_opacity` | float | `1.0` | Opacity of the icon for the active (focused) window. |
 | `inactive_opacity` | float | `1.0` | Opacity of icons for inactive (unfocused) windows. |
 | `focused_color` | string | `"primary"` | Workspace disc fill when active (same roles as the workspaces widget) |
@@ -90,6 +92,8 @@ workspace_group_content = "icons"
 group_single_icon_per_app = true
 show_active_indicator = true
 active_indicator_color = "primary"
+show_minimized_indicator = true
+minimized_indicator_color = "tertiary"
 active_opacity = 1.0
 inactive_opacity = 1.0
 focused_color = "primary"

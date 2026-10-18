@@ -209,7 +209,9 @@ TaskbarWidget::TaskbarWidget(
     : m_platform(platform), m_configService(config), m_output(output), m_configOptions(std::move(options)),
       m_showAllOutputs(m_configOptions.showAllOutputs), m_focusedOutputOnly(m_configOptions.focusedOutputOnly),
       m_minimal(m_configOptions.minimal), m_showActiveIndicator(m_configOptions.showActiveIndicator),
-      m_activeIndicatorColor(m_configOptions.activeIndicatorColor), m_activeOpacity(m_configOptions.activeOpacity),
+      m_activeIndicatorColor(m_configOptions.activeIndicatorColor),
+      m_showMinimizedIndicator(m_configOptions.showMinimizedIndicator),
+      m_minimizedIndicatorColor(m_configOptions.minimizedIndicatorColor), m_activeOpacity(m_configOptions.activeOpacity),
       m_inactiveOpacity(m_configOptions.inactiveOpacity), m_pinnedOpacity(m_configOptions.pinnedOpacity),
       m_focusedColor(m_configOptions.focusedColor), m_occupiedColor(m_configOptions.occupiedColor),
       m_emptyColor(m_configOptions.emptyColor), m_urgentColor(m_configOptions.urgentColor),
@@ -1228,11 +1230,12 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
     }
 
     Box* indicatorPtr = nullptr;
+    Box* minimizedIndicatorPtr = nullptr;
+    const float d = std::max(4.0F, std::round(Style::baseGlyphSize * 0.32F * m_contentScale));
+    const float groupedCapsuleInset =
+        (m_groupByWorkspace && m_workspaceGroupCapsule ? Style::borderWidth : 0.0F) * m_contentScale;
+    const float bottomInset = 0.25F * m_contentScale + groupedCapsuleInset;
     if (m_showActiveIndicator) {
-      const float d = std::max(4.0F, std::round(Style::baseGlyphSize * 0.32F * m_contentScale));
-      const float groupedCapsuleInset =
-          (m_groupByWorkspace && m_workspaceGroupCapsule ? Style::borderWidth : 0.0F) * m_contentScale;
-      const float bottomInset = 0.25F * m_contentScale + groupedCapsuleInset;
       if (showWindowTitle) {
         const float lineThickness = d * 0.5F;
         auto indicator = ui::box({
@@ -1242,7 +1245,7 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
             .height = lineThickness,
         });
         indicatorPtr = indicator.get();
-        indicator->setVisible(task.active);
+        indicator->setVisible(task.active && !task.minimized);
         indicator->setPosition(tilePadding, std::round(tileSize));
         area->addChild(std::move(indicator));
       } else {
@@ -1253,10 +1256,29 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
             .height = d,
         });
         indicatorPtr = indicator.get();
-        indicator->setVisible(task.active);
+        indicator->setVisible(task.active && !task.minimized);
         indicator->setPosition(std::round((tileSize - d) * 0.5F), std::round(tileSize - d - bottomInset));
         area->addChild(std::move(indicator));
       }
+    }
+    // Minimized windows get a short line under the icon instead of the active dot, so they read
+    // apart from both the focused window and plain running ones.
+    if (m_showMinimizedIndicator) {
+      const float lineWidth = std::round(d * 2.5F);
+      const float lineThickness = std::max(2.0F, std::round(d * 0.5F));
+      auto indicator = ui::box({
+          .fill = m_minimizedIndicatorColor,
+          .radius = lineThickness * 0.5F,
+          .width = lineWidth,
+          .height = lineThickness,
+      });
+      minimizedIndicatorPtr = indicator.get();
+      indicator->setVisible(task.minimized);
+      indicator->setPosition(
+          std::round((tileSize - lineWidth) * 0.5F),
+          showWindowTitle ? std::round(tileSize) : std::round(tileSize - lineThickness - bottomInset)
+      );
+      area->addChild(std::move(indicator));
     }
     // Installed even for a currently empty title: a title arriving later must surface without a
     // rebuild. Empty content measures to nothing, so the popup never shows.
@@ -1273,6 +1295,7 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
         .area = area.get(),
         .titleLabel = titleLabelPtr,
         .activeIndicator = indicatorPtr,
+        .minimizedIndicator = minimizedIndicatorPtr,
     });
     attachHover(*area, tileWidthWithTitle, tileSize);
     return area;
@@ -1474,9 +1497,11 @@ void TaskbarWidget::buildTaskButtons(Renderer& renderer) {
       ColorSpec activeDotFill = m_activeIndicatorColor;
       activeDotFill.alpha = 0.95F;
       for (const TaskModel* task : visibleDots) {
-        const bool highlight = task != nullptr && task->active && m_showActiveIndicator;
-        const ColorSpec fill =
-            highlight ? activeDotFill : colorSpecFromRole(ColorRole::OnSurface, anyActive ? 0.55F : 0.35F);
+        const bool minimized = task != nullptr && task->minimized && m_showMinimizedIndicator;
+        const bool highlight = task != nullptr && task->active && !task->minimized && m_showActiveIndicator;
+        const ColorSpec fill = minimized ? m_minimizedIndicatorColor
+            : highlight                  ? activeDotFill
+                                         : colorSpecFromRole(ColorRole::OnSurface, anyActive ? 0.55F : 0.35F);
         content->addChild(
             ui::box({
                 .fill = fill,
@@ -2854,7 +2879,10 @@ void TaskbarWidget::updateModels() {
             tile.area->setOpacity(taskTileOpacity(task));
           }
           if (tile.activeIndicator != nullptr) {
-            tile.activeIndicator->setVisible(task.active);
+            tile.activeIndicator->setVisible(task.active && !task.minimized);
+          }
+          if (tile.minimizedIndicator != nullptr) {
+            tile.minimizedIndicator->setVisible(task.minimized);
           }
         }
       }

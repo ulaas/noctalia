@@ -52,6 +52,8 @@ struct TaskbarWidgetOptions {
   bool groupSingleIconPerApp = false;
   bool showActiveIndicator = true;
   ColorSpec activeIndicatorColor = colorSpecFromRole(ColorRole::Primary);
+  bool showMinimizedIndicator = true;
+  ColorSpec minimizedIndicatorColor = colorSpecFromRole(ColorRole::Tertiary);
   float activeOpacity = 1.0F;
   float inactiveOpacity = 1.0F;
   float iconScale = 1.0F;
@@ -157,6 +159,8 @@ private:
     Label* titleLabel = nullptr;
     // Present when m_showActiveIndicator; visibility tracks task.active.
     Box* activeIndicator = nullptr;
+    // Present when m_showMinimizedIndicator; visibility tracks task.minimized.
+    Box* minimizedIndicator = nullptr;
   };
 
   // Gesture state for drag-to-reorder of pinned tiles in the flat strip. Holds no obligation to
@@ -258,6 +262,8 @@ private:
   bool m_groupSingleIconPerApp = false;
   bool m_showActiveIndicator = true;
   ColorSpec m_activeIndicatorColor = colorSpecFromRole(ColorRole::Primary);
+  bool m_showMinimizedIndicator = true;
+  ColorSpec m_minimizedIndicatorColor = colorSpecFromRole(ColorRole::Tertiary);
   float m_activeOpacity = 1.0F;
   float m_inactiveOpacity = 1.0F;
   float m_pinnedOpacity = 0.5F;

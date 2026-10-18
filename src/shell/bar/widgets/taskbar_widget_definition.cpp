@@ -54,6 +54,15 @@ const noctalia::bar::WidgetDefinition<TaskbarWidgetOptions>& taskbarWidgetDefini
                       .key = "active_indicator_color",
                       .presentation = presentation("taskbar.windows", matches("show_active_indicator", {"true"})),
                   }),
+                  field<&Options::showMinimizedIndicator>({
+                      .key = "show_minimized_indicator",
+                      .presentation = presentation("taskbar.windows"),
+                  }),
+                  field<&Options::minimizedIndicatorColor>({
+                      .key = "minimized_indicator_color",
+                      .presentation =
+                          presentation("taskbar.windows", matches("show_minimized_indicator", {"true"})),
+                  }),
                   field<&Options::activeOpacity>({
                       .key = "active_opacity",
                       .minValue = 0.1,

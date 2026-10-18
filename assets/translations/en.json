@@ -4664,6 +4664,10 @@
           "label": "Minimal Style",
           "taskbar-description": "Text-only workspace labels without colored disc backgrounds"
         },
+        "minimized-indicator-color": {
+          "description": "Color of the short line below minimized window icons",
+          "label": "Minimized Indicator Color"
+        },
         "mirrored": {
           "description": "Mirror the visualizer around its center",
           "label": "Mirrored"
@@ -4778,6 +4782,10 @@
         "show-labels": {
           "description": "Show text labels on workspaces",
           "label": "Show Labels"
+        },
+        "show-minimized-indicator": {
+          "description": "Show a short line below minimized window icons in the taskbar",
+          "label": "Minimized Window Indicator"
         },
         "show-num-lock": {
           "description": "Show Num Lock state",
